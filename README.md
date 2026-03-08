@@ -11,6 +11,13 @@ This repository contains a machine learning pipeline designed to predict **Micro
 
 This project demonstrates the application of predictive modeling in data-driven agriculture and environmental science.
 
+## 📊 Dataset
+The data used to train this model was sourced from [Kaggle](https://www.kaggle.com/). 
+*   **Data Structure:** The dataset contains environmental features (like `Soil_pH` and `Soil_Depth_cm`), macronutrient profiles (Nitrogen, Carbon), and microbial abundance markers.
+*   **Target:** The model is trained to predict `CO2_Emission (µg/g/day)` as a proxy for overall biological soil activity.
+
+> **Note:** To run this notebook locally or in Colab, you will need to upload your own copy of the dataset (e.g., `Soil_microbe_dataset.csv`).
+
 ## ✨ Key Features
 *   **Predictive Modeling:** Utilizes a `LightGBM Regressor` trained on key soil indicators to predict microbial respiration ($CO_2$ Emission µg/g/day) with high accuracy.
 *   **Feature Engineering:** Includes advanced composition transformations, such as **Center Log-Ratio (CLR)** for microbial abundance, alongside Shannon Diversity Index and Species Richness calculations.
