@@ -12,7 +12,8 @@ This repository contains a machine learning pipeline designed to predict **Micro
 This project demonstrates the application of predictive modeling in data-driven agriculture and environmental science.
 
 ## 📊 Dataset
-The data used to train this model was sourced from [Kaggle](https://www.kaggle.com/). 
+The data used to train this model was sourced from Kaggle.
+*   **Citation:** Kaggle, “Soil microbial activity dataset,” [Online]. Available: https://www.kaggle.com. Accessed: 2023.
 *   **Data Structure:** The dataset contains environmental features (like `Soil_pH` and `Soil_Depth_cm`), macronutrient profiles (Nitrogen, Carbon), and microbial abundance markers.
 *   **Target:** The model is trained to predict `CO2_Emission (µg/g/day)` as a proxy for overall biological soil activity.
 
