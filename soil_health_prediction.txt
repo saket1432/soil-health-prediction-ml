@@ -1,0 +1,344 @@
+!pip install pandas numpy scikit-learn lightgbm xgboost catboost shap scikit-bio seaborn matplotlib joblib
+
+
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import train_test_split, KFold, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score, mean_absolute_error
+
+import lightgbm as lgb
+
+np.random.seed(42)
+
+from google.colab import files
+uploaded = files.upload()
+
+from google.colab import files
+uploaded = files.upload()
+
+dataset_path = "Soil_microbe_dataset.csv"  # 🔴 CHANGE THIS
+df = pd.read_csv(dataset_path)
+
+print("Dataset Loaded ✅")
+print("Shape:", df.shape)
+df.head()
+
+df = df.rename(columns={
+    "NH4_Nitrate (µg/g)": "NH4_Ammonium (µg/g)"
+})
+
+def convert_range_to_mean(value):
+    if isinstance(value, str) and ("-" in value or "–" in value):
+        value = value.replace("–", "-")
+        parts = value.split("-")
+        try:
+            nums = [float(p.strip()) for p in parts]
+            return sum(nums) / len(nums)
+        except:
+            return np.nan
+    return value
+
+df = df.apply(lambda col: col.map(convert_range_to_mean))
+
+def clr_transform(df):
+    arr = df.values + 1e-6
+    props = arr / arr.sum(axis=1, keepdims=True)
+    gm = np.exp(np.log(props).mean(axis=1, keepdims=True))
+    clr = np.log(props / gm)
+    return pd.DataFrame(clr, columns=df.columns, index=df.index)
+
+def shannon_index(df):
+    arr = df.values + 1e-12
+    props = arr / arr.sum(axis=1, keepdims=True)
+    return pd.Series(-(props * np.log(props)).sum(axis=1),
+                     name="Shannon",
+                     index=df.index)
+
+def richness(df):
+    return pd.Series((df.fillna(0) > 1e-6).sum(axis=1),
+                     name="Richness",
+                     index=df.index)
+
+def clr_transform(df):
+    arr = df.values + 1e-6
+    props = arr / arr.sum(axis=1, keepdims=True)
+    gm = np.exp(np.log(props).mean(axis=1, keepdims=True))
+    clr = np.log(props / gm)
+    return pd.DataFrame(clr, columns=df.columns, index=df.index)
+
+def shannon_index(df):
+    arr = df.values + 1e-12
+    props = arr / arr.sum(axis=1, keepdims=True)
+    return pd.Series(-(props * np.log(props)).sum(axis=1),
+                     name="Shannon",
+                     index=df.index)
+
+def richness(df):
+    return pd.Series((df.fillna(0) > 1e-6).sum(axis=1),
+                     name="Richness",
+                     index=df.index)
+
+target_col = "CO2_Emission (µg/g/day)"
+
+# 🔴 Organic_C REMOVED here
+soil_cols = ["Soil_pH", "Soil_Depth_cm"]
+
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+
+exclude_cols = soil_cols + [
+    target_col,
+    "ID",
+    "Organic_C (%)"  # 🔴 Explicitly excluded
+]
+
+microbe_cols = [c for c in numeric_cols if c not in exclude_cols]
+
+print("Soil Features:", soil_cols)
+print("Microbial Features:", microbe_cols)
+
+X_raw = df[soil_cols + microbe_cols]
+y = df[target_col]
+
+X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+    X_raw,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+print("Train Shape:", X_train_raw.shape)
+print("Test Shape :", X_test_raw.shape)
+
+clr_train = clr_transform(X_train_raw[microbe_cols])
+clr_test = clr_transform(X_test_raw[microbe_cols])
+
+shannon_train = shannon_index(X_train_raw[microbe_cols])
+shannon_test = shannon_index(X_test_raw[microbe_cols])
+
+rich_train = richness(X_train_raw[microbe_cols])
+rich_test = richness(X_test_raw[microbe_cols])
+
+pca = PCA(n_components=7)
+
+pca_train = pd.DataFrame(
+    pca.fit_transform(clr_train),
+    columns=[f"PCA_{i+1}" for i in range(7)],
+    index=clr_train.index
+)
+
+pca_test = pd.DataFrame(
+    pca.transform(clr_test),
+    columns=[f"PCA_{i+1}" for i in range(7)],
+    index=clr_test.index
+)
+
+X_train = pd.concat([
+    X_train_raw[soil_cols],
+    clr_train,
+    pca_train,
+    shannon_train,
+    rich_train
+], axis=1)
+
+X_test = pd.concat([
+    X_test_raw[soil_cols],
+    clr_test,
+    pca_test,
+    shannon_test,
+    rich_test
+], axis=1)
+
+# Define final_feature_columns here to capture the column order before imputation/scaling
+final_feature_columns = X_train.columns
+
+print("Final Train Shape:", X_train.shape)
+
+
+imputer = SimpleImputer(strategy="median")
+scaler = StandardScaler()
+
+X_train = pd.DataFrame(imputer.fit_transform(X_train), columns=X_train.columns)
+X_test = pd.DataFrame(imputer.transform(X_test), columns=X_test.columns)
+
+X_train = pd.DataFrame(scaler.fit_transform(X_train), columns=X_train.columns)
+X_test = pd.DataFrame(scaler.transform(X_test), columns=X_test.columns)
+
+
+model = lgb.LGBMRegressor(
+    n_estimators=600,
+    learning_rate=0.03,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+preds = model.predict(X_test)
+
+print("\n=== PERFORMANCE (Without Organic_C) ===")
+print("R² Score:", r2_score(y_test, preds))
+print("MAE     :", mean_absolute_error(y_test, preds))
+
+kf = KFold(n_splits=5, shuffle=True, random_state=42)
+
+cv_scores = cross_val_score(
+    model,
+    X_train,
+    y_train,
+    cv=kf,
+    scoring="r2"
+)
+
+print("\nCross Validation R²")
+print("Mean:", np.mean(cv_scores))
+print("Std :", np.std(cv_scores))
+
+df.drop(columns=["Organic_C (%)"]).corr(numeric_only=True)["CO2_Emission (µg/g/day)"].sort_values(ascending=False)
+
+def predict_soil_health(input_sample):
+
+    # Convert dictionary to DataFrame
+    sample_df = pd.DataFrame([input_sample])
+
+    # Ensure same raw feature order
+    sample_df = sample_df[X_train_raw.columns]
+
+    # ---------- FEATURE ENGINEERING ----------
+
+    # CLR
+    clr_sample = clr_transform(sample_df[microbe_cols])
+
+    # Shannon & Richness
+    shannon_sample = shannon_index(sample_df[microbe_cols])
+    rich_sample = richness(sample_df[microbe_cols])
+
+    # PCA (on CLR)
+    pca_sample = pd.DataFrame(
+        pca.transform(clr_sample),
+        columns=[f"PCA_{i+1}" for i in range(pca.n_components_)],
+        index=sample_df.index
+    )
+
+    # Combine exactly like training
+    final_sample_df = pd.concat([
+        sample_df[soil_cols],
+        clr_sample,
+        pca_sample,
+        shannon_sample,
+        rich_sample
+    ], axis=1)
+
+    # Force same column order as training data
+    final_sample_reindexed = final_sample_df.reindex(columns=final_feature_columns)
+
+    # Impute and Scale using the fitted imputer and scaler
+    X_single_input_imputed = pd.DataFrame(imputer.transform(final_sample_reindexed), columns=final_feature_columns)
+    X_single_input_scaled = pd.DataFrame(scaler.transform(X_single_input_imputed), columns=final_feature_columns)
+
+    # ---------- PREDICTION ----------
+    predicted_co2 = model.predict(X_single_input_scaled)[0]
+
+    # ---------- NORMALIZATION ----------
+    min_val = y_train.min()
+    max_val = y_train.max()
+    score = 100 * (predicted_co2 - min_val) / (max_val - min_val)
+    score = max(0, min(100, score))
+
+    # ---------- CATEGORY ----------
+    if score >= 75:
+        category = "Excellent"
+    elif score >= 50:
+        category = "Good"
+    elif score >= 30:
+        category = "Moderate"
+    else:
+        category = "Poor"
+
+    print("===========================================================")
+    print("               MICROBIAL SOIL HEALTH REPORT")
+    print("===========================================================")
+
+    print("\nSOIL INPUT SUMMARY:")
+    print(f"• Soil pH level: {input_sample['Soil_pH']}")
+    print(f"• Total Nitrogen (%): {input_sample['Total_N (%)']}")
+    print(f"• C:N Ratio: {input_sample['C_N_Ratio']}")
+    print(f"• Enzymatic Indicators suggest active microbial processes.")
+
+    print("\n-----------------------------------------------------------")
+    print("BIOLOGICAL ACTIVITY ASSESSMENT")
+    print("-----------------------------------------------------------")
+    print(f"Estimated Microbial Respiration : {predicted_co2:.2f} µg/g/day")
+
+    print("\nThis CO₂ emission level reflects overall microbial")
+    print("metabolic activity and carbon cycling efficiency.")
+
+    print("\n-----------------------------------------------------------")
+    print("SOIL HEALTH INDEX")
+    print("-----------------------------------------------------------")
+    print(f"Soil Health Score : {score:.2f} / 100")
+    print(f"Health Category   : {category}")
+
+    if category == "Excellent":
+        print("Risk Level        : Low Risk")
+        print("Sustainability    : Biologically Sustainable")
+    elif category == "Good":
+        print("Risk Level        : Mild Risk")
+        print("Sustainability    : Stable but Monitoring Recommended")
+    elif category == "Moderate":
+        print("Risk Level        : Moderate Risk")
+        print("Sustainability    : Needs Biological Improvement")
+    else:
+        print("Risk Level        : High Risk")
+        print("Sustainability    : Restoration Required")
+
+    print("\n-----------------------------------------------------------")
+    print("SOIL FUNCTIONAL STATUS")
+    print("-----------------------------------------------------------")
+
+    if score >= 75:
+        print("✔ Active Carbon Cycling")
+        print("✔ Stable Nutrient Transformation")
+        print("✔ Healthy Microbial Balance")
+    elif score >= 50:
+        print("✔ Moderate Carbon Cycling")
+        print("✔ Acceptable Nutrient Transformation")
+    else:
+        print("⚠ Reduced Microbial Efficiency")
+        print("⚠ Nutrient Cycling May Be Limited")
+
+    print("\n-----------------------------------------------------------")
+    print("MANAGEMENT GUIDANCE")
+    print("-----------------------------------------------------------")
+
+    if score >= 75:
+        print("• Maintain current soil management practices.")
+        print("• Avoid excessive chemical disturbance.")
+    elif score >= 50: # Fixed: changed 'category' to 'score'
+        print("• Continue organic amendments.")
+        print("• Monitor nutrient balance.")
+    elif score >= 30: # Fixed: changed 'category' to 'score'
+        print("• Increase compost application.")
+        print("• Improve soil moisture retention.")
+    else:
+        print("• Add organic carbon sources.")
+        print("• Reduce intensive tillage.")
+        print("• Consider crop rotation.")
+
+    print("\n===========================================================")
+
+input_sample = {
+    'Soil_pH': 7.0,
+    'Soil_Depth_cm': 15.0,
+    'Total_N (%)': 0.2,
+    'C_N_Ratio': 15.0,
+    'Bacteria_Abundance (%)': 0.45,
+    'Fungi_Abundance (%)': 0.35,
+    'β_Glucosidase (µmol/g/h)': 55.0,
+    'Urease (µmol/g/h)': 40.0,
+    'NH4_Ammonium (µg/g)': 180.0
+}
+
+predict_soil_health(input_sample)

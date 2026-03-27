@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microbial Soil Health Diagnostic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background">
+        <div class="blob blob1"></div>
+        <div class="blob blob2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>Microbial Soil Health Prediction</h1>
+                    <p>Analyze biochemical soil markers to predict CO₂ emissions and assess overall health.</p>
+                </div>
+                <button class="export-btn" id="export-btn" onclick="window.print()" style="display: none;">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download PDF
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <div class="card form-card">
+                <h2>Soil Analysis Inputs</h2>
+                <form id="soil-form">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label for="Soil_pH">Soil pH</label>
+                            <input type="number" step="0.01" id="Soil_pH" value="7.0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="Soil_Depth_cm">Soil Depth (cm)</label>
+                            <input type="number" step="0.1" id="Soil_Depth_cm" value="15.0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="Total_N (%)">Total Nitrogen (%)</label>
+                            <input type="number" step="0.001" id="Total_N (%)" value="0.2" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="C_N_Ratio">C:N Ratio</label>
+                            <input type="number" step="0.1" id="C_N_Ratio" value="15.0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="Bacteria_Abundance (%)">Bacteria Abundance (%)</label>
+                            <input type="number" step="0.01" id="Bacteria_Abundance (%)" value="0.45" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="Fungi_Abundance (%)">Fungi Abundance (%)</label>
+                            <input type="number" step="0.01" id="Fungi_Abundance (%)" value="0.35" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="β_Glucosidase (µmol/g/h)">β-Glucosidase (µmol/g/h)</label>
+                            <input type="number" step="0.01" id="β_Glucosidase (µmol/g/h)" value="55.0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="Urease (µmol/g/h)">Urease (µmol/g/h)</label>
+                            <input type="number" step="0.01" id="Urease (µmol/g/h)" value="40.0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="NH4_Ammonium (µg/g)">NH₄ Ammonium (µg/g)</label>
+                            <input type="number" step="0.01" id="NH4_Ammonium (µg/g)" value="180.0" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn">
+                        <span class="btn-text">Analyze Soil Profile</span>
+                        <div class="spinner disabled"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div class="card result-card" id="result-card">
+                <h2>Interactive Diagnostic Report</h2>
+                
+                <div class="report-main-grid">
+                    <div class="score-container">
+                        <div class="score-circle">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path class="circle" stroke-dasharray="0, 100" id="score-circle-path" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="score-text">
+                                <span id="score-value">--</span>
+                                <span class="score-label">/100</span>
+                            </div>
+                        </div>
+                        <div class="score-details">
+                            <h3 id="category-value" class="tag neutral">Pending Analysis</h3>
+                            <p class="co2-metric">Predicted CO₂ Emission: <br><strong id="co2-value">--</strong> µg/g/day</p>
+                            <div class="mini-tags">
+                                <span class="mini-tag" id="risk-value" title="Risk Level of Current Soil Status">N/A Risk</span>
+                                <span class="mini-tag" id="sustainability-value" title="Biological Sustainability">N/A Sustainability</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="interactive-breakdown">
+                    <h3>Marker Analysis</h3>
+                    <p class="section-desc">Hover over each marker to understand its effect on soil health.</p>
+                    
+                    <div id="limiting-factor-banner" class="limiting-banner" style="display: none;">
+                        <strong>⚠️ Critical Bottleneck:</strong> <span id="bottleneck-text"></span>
+                    </div>
+
+                    <div class="marker-grid" id="marker-grid">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- New SHAP Model Impact Section -->
+                    <div id="model-impact-section" style="display: none; padding-top: 1rem; border-top: 1px solid var(--border-color); margin-top: 1.5rem;">
+                        <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem;">Machine Learning Explainability (SHAP)</h4>
+                        <p class="section-desc">Exact mathematical impact of your features on the algorithm's final prediction.</p>
+                        <div id="shap-impacts-list"></div>
+                    </div>
+                </div>
+
+                <div class="guidance-section interactive">
+                    <h4>Actionable Management Guidance</h4>
+                    <ul id="guidance-list">
+                        <li>Submit form to receive specific guidance.</li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Chart.js integration -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

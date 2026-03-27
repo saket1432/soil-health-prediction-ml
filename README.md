@@ -1,45 +1,33 @@
 # A Microbial Soil Activity and Health Prediction System
 
 <div align="center">
-  <h3>Machine Learning System for Predicting Soil CO₂ Emissions and Overall Health</h3>
+  <h3>Full-Stack Machine Learning System for Predicting Soil CO₂ Emissions and Overall Health</h3>
 </div>
 
 <br />
 
 ## 📝 Overview
-This repository contains a machine learning pipeline designed to predict **Microbial Soil Activity** (specifically CO₂ emission levels) and assess overall **Soil Health**. By analyzing chemical and environmental datasets—such as pH, macronutrients, and microbial abundance—the system outputs a diagnostic score (0-100) and provides actionable management guidance.
+This repository contains a complete end-to-end machine learning pipeline and interactive web dashboard designed to predict **Microbial Soil Activity** (specifically CO₂ emission levels) and assess overall **Soil Health**. 
 
-This project demonstrates the application of predictive modeling in data-driven agriculture and environmental science.
-
-## 📊 Dataset
-The data used to train this model was sourced from Kaggle.
-*   **Citation:** Kaggle, “Soil microbial activity dataset,” [Online]. Available: https://www.kaggle.com. Accessed: 2023.
-*   **Data Structure:** The dataset contains environmental features (like `Soil_pH` and `Soil_Depth_cm`), macronutrient profiles (Nitrogen, Carbon), and microbial abundance markers.
-*   **Target:** The model is trained to predict `CO2_Emission (µg/g/day)` as a proxy for overall biological soil activity.
-
-> **Note:** To run this notebook locally or in Colab, you will need to upload your own copy of the dataset (e.g., `Soil_microbe_dataset.csv`).
+By analyzing chemical and environmental datasets—such as pH, macronutrients, and microbial abundance—the system outputs a custom diagnostic score (0-100), visualizes the health profile via an interactive radar chart, and provides mathematically-backed, actionable management guidance.
 
 ## ✨ Key Features
-*   **Predictive Modeling:** Utilizes a `LightGBM Regressor` trained on key soil indicators to predict microbial respiration ($CO_2$ Emission µg/g/day) with high accuracy.
-*   **Feature Engineering:** Includes advanced composition transformations, such as **Center Log-Ratio (CLR)** for microbial abundance, alongside Shannon Diversity Index and Species Richness calculations.
-*   **Dimensionality Reduction:** Employs **Principal Component Analysis (PCA)** to manage high-dimensional microbial composition data.
-*   **Diagnostic Reporting:** Outputs a comprehensive "Microbial Soil Health Report," categorizing soil into *Excellent, Good, Moderate,* or *Poor* health, complete with customized sustainability and management guidance.
 
-## 🛠️ Technologies Used
-*   **Language:** Python 3
-*   **Core Libraries:** `pandas`, `numpy`
-*   **Machine Learning:** `scikit-learn` (PCA, Custom Imputation, StandardScaling, Cross-Validation), `lightgbm`
-*   **Environment:** Google Colab / Jupyter Notebook
+### 1. Interactive UI Dashboard (`frontend/`)
+*   **Dynamic Visualizations:** Includes a Chart.js Radar Chart mapping your specific soil profile against optimal ranges.
+*   **Liebig's Law Bottleneck Analysis:** Automatically identifies and highlights the single critical limiting factor holding back your soil's biological potential.
+*   **Explainable Actions:** Provides dynamic management solutions explicitly tailored to whether your parameters are too high or too low.
+*   **Export:** Built-in "Download PDF" support for generating clean, printable diagnostic reports for farm managers.
+
+### 2. Machine Learning API (`backend/`)
+*   **Predictive Engine:** Uses a robust `LightGBM Regressor` trained on key soil indicators to predict actual biological flux ($CO_2$ Emission µg/g/day).
+*   **Direct ML Explainability (SHAP):** The Flask API uses `shap.TreeExplainer` to calculate the exact mathematical impact (+/-) of every single feature in real-time, preventing the model from acting as a "black box".
+*   **Advanced Feature Engineering:** Uses **Center Log-Ratio (CLR)** transformations to handle compositional microbiome data, along with Shannon Diversity Index, Species Richness, and Principal Component Analysis (PCA).
 
 ## 🚀 Getting Started
 
-### Running in Google Colab (Recommended)
-The easiest way to explore this project is to open the notebook directly in Google Colab:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/saket1432/soil-health-prediction-ml/blob/main/soil_health_prediction.ipynb)
-
-### Running Locally
-To run this project on your local machine:
+### Running the Full Web App Locally
+To run the interactive dashboard and API on your local machine:
 
 1.  **Clone the repository:**
     ```bash
@@ -48,18 +36,26 @@ To run this project on your local machine:
     ```
 2.  **Install dependencies:**
     ```bash
-    pip install pandas numpy scikit-learn lightgbm
+    pip install pandas numpy scikit-learn lightgbm flask flask-cors shap
     ```
-3.  **Launch Jupyter Notebook:**
+3.  **Launch the Backend API:**
     ```bash
-    jupyter notebook soil_health_prediction.ipynb
+    python3 backend/app.py
     ```
+    *The API will start running on `http://127.0.0.1:5000`.*
+4.  **Open the Dashboard:**
+    Simply open the `frontend/index.html` file in any modern web browser to access the premium interactive UI.
 
-## 📊 Methodology Snapshot
-1.  **Data Preprocessing:** Standardized chemical markers and converted string-based range values to numerical means. Targeted exclusions (like direct Organic C percentage) were made during correlation analysis.
-2.  **Transformation:** Microbial percentage data was transformed using CLR to account for compositionality constraints.
-3.  **Modeling:** An LGBM Regressor (`n_estimators=600`, `learning_rate=0.03`) was validated using 5-Fold Cross-Validation.
-4.  **Inference:** New soil samples are dynamically scaled and imputed based on the training distribution before prediction.
+---
+
+### Exploring the Model Training (Google Colab)
+If you only want to explore the data science and original model training process, you can launch the Jupyter Notebook directly in Google Colab:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/saket1432/soil-health-prediction-ml/blob/main/soil_health_prediction.ipynb)
+
+## 📊 Dataset
+The mathematical models rely on the `Soil_microbe_dataset.csv`.
+*   **Citation:** Kaggle, “Soil microbial activity dataset,” [Online]. Available: https://www.kaggle.com. Accessed: 2023.
 
 ## 📄 License
 This project is open-source and available under the [MIT License](LICENSE).
